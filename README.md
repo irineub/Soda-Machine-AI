@@ -1,107 +1,56 @@
-# Soda AI Backend API
+# 🥤 Soda Machine API – AI-powered Vending System
 
-A FastAPI-based CRUD application using SQLModel and SQLite for managing products and sales, with integrated Gemini AI chat functionality.
+Welcome to the **Soda Machine API**, a simple but intelligent vending machine powered by **FastAPI**, **SQLModel**, and AI via the **Instructor** library. 
 
-## Setup
+---
 
-1. Create a `.env` file in the root directory with your Gemini API key:
-```bash
-GEMINI_API_KEY=your_actual_gemini_api_key_here
-```
+## 🚀 Overview
 
-2. Install dependencies:
-```bash
-pip install -r requirements.txt
-```
+This API enables users to interact with a soda vending machine using **natural language** commands like:
 
-3. Run the application:
-```bash
-python main.py
-```
+> "I want to buy 2 sprites and a coke."
 
-The API will be available at `http://127.0.0.1:8000`
+Through the power of **LLMs** (Language Models), the system interprets these messages, determines the user’s intent, and performs appropriate actions like selling soda, updating inventory, and logging transactions.
 
-## API Endpoints
+---
 
-### Chat (Gemini AI)
+## 🧠 AI Agent Orchestration
 
-- `POST /chat/` - Chat with Gemini AI (with conversation history)
-- `POST /chat/simple/` - Simple chat with Gemini AI (message only)
+This backend features a lightweight **AI agent orchestrator** which i called flow, inspired by crewai, developed by me with:
 
-### Products
+- 🔁 Recursive validation logic to ensure coherent agent responses  
+- ✅ JSON schema validation via [Instructor](https://github.com/jxnl/instructor)  
+Manages how the AI interprets and validates natural language inputs.
 
-- `POST /products/` - Create a new product
-- `GET /products/` - Get all products (with pagination: skip, limit)
-- `GET /products/{product_id}` - Get a specific product
-- `PUT /products/{product_id}` - Update a product
-- `DELETE /products/{product_id}` - Delete a product
+✅ Flow Highlights
+LLM Client: Powered by instructor + OpenAI, configured to run locally via ollama.
 
-### Sales
+Structured Output: Uses Pydantic response models to constrain and validate AI responses (e.g., UserIntent, FreeChat).
 
-- `POST /sales/` - Create a new sale (automatically reduces product stock)
-- `GET /sales/` - Get all sales (with pagination: skip, limit)
-- `GET /sales/{sale_id}` - Get a specific sale
-- `DELETE /sales/{sale_id}` - Delete a sale (automatically restores product stock)
+Recursive Retry Logic: If the LLM returns an incoherent structure (e.g., action=buy but orders=[]), the orchestrator retries up to 5 times with feedback.
 
-### Health Check
+Quality Agent Layer: For semantic validation of the structured intent before continuing to the business logic.
 
-- `GET /ping` - Health check endpoint
 
-## Example Usage
+---
 
-### Chat with Gemini AI
-```bash
-# Simple chat
-curl -X POST "http://127.0.0.1:8000/chat/simple/" \
-     -H "Content-Type: application/json" \
-     -d '"Hello, how are you?"'
+## 📦 Tech Stack
 
-# Chat with conversation history
-curl -X POST "http://127.0.0.1:8000/chat/" \
-     -H "Content-Type: application/json" \
-     -d '{
-       "message": "What did I just ask you?",
-       "conversation_history": [
-         {"role": "user", "content": "Hello, how are you?"},
-         {"role": "assistant", "content": "I am doing well, thank you for asking!"}
-       ]
-     }'
-```
+- **Python 3.11+**
+- **FastAPI** – RESTful API framework  
+- **SQLModel** – SQLite ORM (SQLAlchemy + Pydantic)  
+- **Instructor** – OpenAI-based JSON validation using structured outputs  
+- **Docker + docker-compose** – Containerized environment  
 
-### Create a Product
-```bash
-curl -X POST "http://127.0.0.1:8000/products/" \
-     -H "Content-Type: application/json" \
-     -d '{"name": "Coca Cola", "stock": 100, "price": 150}'
-```
+---
 
-### Get All Products
-```bash
-curl "http://127.0.0.1:8000/products/"
-```
+## ⚙️ Features
 
-### Create a Sale
-```bash
-curl -X POST "http://127.0.0.1:8000/sales/" \
-     -H "Content-Type: application/json" \
-     -d '{"product_id": 1}'
-```
+- 🛒 Natural language purchase of soda
+- 📦 Inventory tracking and persistence
+- 💾 Transaction history stored in SQLite
+- 🔍 Intent detection: Buy, Info, or Misc
+- 📉 Stock depletion handling
+- 📈 Built-in data models for analytics (most sold, low stock, etc.)
 
-## Environment Variables
-
-Create a `.env` file in the root directory with:
-```
-GEMINI_API_KEY=your_gemini_api_key_here
-```
-
-You can get a Gemini API key from [Google AI Studio](https://makersuite.google.com/app/apikey).
-
-## Database
-
-The application uses SQLite with a database file `soda_ai.db` that will be created automatically when you first run the application.
-
-## API Documentation
-
-Once the server is running, you can access the interactive API documentation at:
-- Swagger UI: `http://127.0.0.1:8000/docs`
-- ReDoc: `http://127.0.0.1:8000/redoc` 
+---

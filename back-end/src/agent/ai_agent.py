@@ -4,11 +4,15 @@ from dotenv import load_dotenv
 import instructor
 from openai import OpenAI
 from pydantic import BaseModel
-
+from src.models import Product, engine
+from sqlmodel import Session, select
 from src.agent.models import UserIntent, FreeChat, QualityCheck
 from src.agent.utils.agent_flow_logging import FlowLogger
+import httpx
+
 logger = FlowLogger()
 load_dotenv()
+
 
 class LLM:
     def __init__(self):
@@ -20,69 +24,16 @@ class LLM:
             mode=instructor.Mode.JSON,
         )
 
-    def send(
-        self, response_model: BaseModel, message: str, quality_agent: bool = False
-    ):
-        qa_context = ""
-        if quality_agent:
-            logger.info("Checking Quality")
-            qa_context = """ 
-            You are a validation agent responsible for checking if a user intent action and its corresponding JSON payload are semantically valid.
-
-                                Given:
-
-                                An intent action (such as "buy", "info", or "chat").
-
-                                A JSON payload with fields expected to match that intent.
-
-                                Return False if:
-                                Intent is "buy" and the JSON:
-
-                                Does not contain a non-empty list in orders (e.g., orders=[] or missing).
-
-                                Intent is "info" and the JSON:
-
-                                Does not contain a non-empty list in info (e.g., info=[] or missing).
-
-                                Intent is "chat" and the JSON:
-
-                                Does not contain a non-empty string in message (e.g., message="" or missing).
-
-                                Return True only if:
-                                The intent matches the action type in the JSON, and
-
-                                The expected data structure for that intent is present and non-empty.
-
-                                Examples:
-                                1. intent="buy" with orders=[] → False
-                                { "action": "buy", "orders": [] }
-
-                                2. intent="buy" with orders=[{ "soda": "coke", "qty": 2 }] → True
-                                { "action": "buy", "orders": [{ "soda": "coke", "qty": 2 }] }
-
-                                3. intent="info" with info=[] → False
-
-                                4. intent="chat" with no message or an empty string → False
-                            """
-            command = self.client.chat.completions.create(
-                    model="llama3",
-                    messages=[{"role": "user", "content": f"{qa_context}\n\n{message}"}],
-                    response_model=response_model,
-                    max_retries=2,
-                    timeout=60.0,
-
-                )
-            return command
-
+    def send(self, response_model: BaseModel, message: str, context: str = None):
 
         try:
             command = self.client.chat.completions.create(
                 model="llama3",
                 messages=[{"role": "user", "content": message}],
                 response_model=response_model,
-                max_retries=2,
+                max_retries=5,
                 timeout=60.0,
-
+                context={"context":context},
             )
             return command
         except Exception as e:
@@ -94,7 +45,7 @@ class AIAgent:
         self.llm = LLM()
 
     def handle_message(
-        self, message: str, attempts: int = 0, max_attempts: int = 5
+        self, message: str, attempts: int = 0, max_attempts: int = 10
     ) -> str:
         if attempts == 0:
             logger.success("Starting Agent Flow Execution", message)
@@ -106,7 +57,7 @@ class AIAgent:
         intent = self.identify_intent(message)
         logger.info("Analysing Intent", intent)
 
-        response_ok = self.quality_check(intent, message)
+        response_ok = self.intent_verify(intent, message)
         if not response_ok:
             return self.handle_message(message, attempts + 1, max_attempts)
         else:
@@ -118,45 +69,120 @@ class AIAgent:
             response = self.llm.send(UserIntent, message)
         return response
 
-    def quality_check(self, intent: BaseModel, message: str):
+    def intent_verify(self, intent: BaseModel, message: str):
+        qa_context = """ 
+            You are a validation agent responsible for checking if a user intent action and its corresponding JSON payload are semantically valid.
+            Given:
+            An intent action (such as "buy", "info", or "chat").
+            A JSON payload with fields expected to match that intent.
+            Return False if:
+            Intent is "buy" and the JSON:
+            Does not contain a non-empty list in orders (e.g., orders=[] or missing).
+            Intent is "info" or "most_sold" and the JSON:
+            Must have orders empty and also message empty to be true.
+            Intent is "chat" and the JSON:
+            Does not contain a non-empty string in message (e.g., message="" or missing).
+            Return True only if:
+            The intent matches the action type in the JSON, and
+            The expected data structure for that intent is present and non-empty.
+            """
         verify = f""" Question: {message} 
                     JSON: \n
                     {intent}
                     """
-        if intent.action=="buy" and intent.orders==[]:
+
+        if intent.action == "info":
+            logger.success("Info about Stock Intent Validated by Intent Checker")
+            return True
+        if intent.action == "most_sold":
+            logger.success("Most Sold Information Intent Validated by Intent Checker")
+            return True
+
+        if intent.action == "buy" and intent.orders == []:
             logger.warn("Intent Not Indentified", "Trying Again")
             return False
-        if intent.action=="chat" and intent.message==None:
+        if intent.action == "chat" and intent.message == None:
             logger.warn("Intent Not Indentified", "Trying Again")
             return False
-        response = self.llm.send(QualityCheck, message, quality_agent=True)
+
+        response = self.llm.send(QualityCheck, verify, context=qa_context)
         if response.valid == False:
             logger.warn("Intent Not Indentified", "Trying Again")
         if response.valid:
-            logger.success("Intent Validated by Quality Checker")
+            logger.success("Intent Validated by Intent Checker")
 
         return response.valid
 
     def flow_continue(self, command: UserIntent, message: str):
         if command.action == "buy":
-            response = "Order received: " + ", ".join(
-                f"{o.quantity}x {o.soda_name}" for o in command.orders
-            )
-            logger.success("Flow Completed",{"input":message,"response":response })
-
-            return response
+            sales_results = []
+            for order in command.orders:
+                payload = {
+                    "product_name": order.soda_name.lower(),
+                    "quantity": order.quantity
+                }
+                try:
+                    response = httpx.post("http://localhost:8000/sales/", json=payload)
+                    if response.status_code == 200:
+                        sales = response.json()
+                        sales_results.append(f"Ordered {order.quantity}x {order.soda_name}: Success")
+                    else:
+                        sales_results.append(f"Ordered {order.quantity}x {order.soda_name}: Failed ({response.json().get('detail', 'Unknown error')})")
+                except Exception as e:
+                    sales_results.append(f"Ordered {order.quantity}x {order.soda_name}: Failed ({str(e)})")
+            final_response = " \n ".join(sales_results)
+            logger.info("Buying", command.orders)
+            logger.success("Flow Completed", {"input": message, "response": final_response})
+            return final_response
 
         elif command.action == "info":
-            return "We offer: Coca-Cola, Fanta, Sprite, and Pepsi. What would you like?"
-        #TODO
+            info_context = "You are a working with Drink Sales Return the Stock Information Bellow in a user Friendly way"
+            try:
+                resp = httpx.get("http://localhost:8000/products/?skip=0&limit=100")
+                resp.raise_for_status()
+                products = resp.json()
+            except Exception as e:
+                logger.error("Failed to fetch products", str(e))
+                return "Sorry, I couldn't retrieve product information right now."
+
+            if not products:
+                return "No products available."
+            stock = "Stock available:\n" + "\n".join(
+                f"{p['name'].title()}: {p['stock']} in stock, ${p['price']} \n" for p in products
+            )
+            response = self.llm.send(FreeChat, message=stock, context=info_context)
+
+            return response
+        
+        elif command.action == "most_sold":
+            try:
+                resp = httpx.get("http://localhost:8000/sales/most_sold/")
+                resp.raise_for_status()
+                most_sold = resp.json()
+            except Exception as e:
+                logger.error("Failed to fetch most sold products", str(e))
+                return "Sorry, I couldn't retrieve most sold product information right now."
+
+            if not most_sold:
+                return "No sales data available."
+            # Format the response as needed; assuming most_sold is a list of dicts
+            result = "Most Sold Products:\n" + "\n".join(
+                f"{item['product_name'].title()}: {item['total_sold']} sold in total" for item in most_sold
+            )
+            return result
+
         elif command.action in ("chat", "misc"):
             try:
-                response:FreeChat = self.llm.send(FreeChat, command.message)
+                response: FreeChat = self.llm.send(FreeChat, command.message)
             except:
-                response = "Sorry, i cant answer your question right now, try again later"
+                response = (
+                    "Sorry, i cant answer your question right now, try again later"
+                )
                 logger.error("Flow Failed", response)
             finally:
-                logger.success("Flow Completed",{"input":message,"response":response.message })
+                logger.success(
+                    "Flow Completed", {"input": message, "response": response.message}
+                )
             return response
 
         return "Sorry, I couldn't understand your request."

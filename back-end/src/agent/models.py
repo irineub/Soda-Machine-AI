@@ -10,9 +10,9 @@ class SodaOrder(BaseModel):
     quantity: int = Field(..., description="Quantity of that soda to purchase")
 
 class UserIntent(BaseModel):
-    action: Literal["buy", "chat"] = Field(
+    action: Literal["buy", "chat","info","most_sold"] = Field(
         default="chat", 
-        description="The user’s intent: buy soda, get soda info, or chat freely"
+        description="The user’s intent: buy soda, get soda stock info, or chat freely"
     )
     orders: Optional[List[SodaOrder]] = Field(
         default=None,
@@ -23,9 +23,10 @@ class UserIntent(BaseModel):
         description="Freeform user message if the action is 'chat'"
     )
 
+
 class FreeChat(BaseModel):
     message:str
 
 class QualityCheck(BaseModel):
     context:str
-    valid:bool = Field(...,description="Check if the JSON matches the intent returning true or false , if its a buy action it must have a order list, if its is a chat it must have message, if both are none it is invalid ")
+    valid:bool = Field(...,description="Check if the JSON matches the intent returning true or false , if its a buy action it must have a order list, if its is a chat it must have message, if its info or most_sold it doesnt have orders or message.")

@@ -6,7 +6,6 @@ __pycache__/
 *.pid
 *.swp
 *.sqlite3
-*.db
 *.db-journal
 
 # Virtual environments

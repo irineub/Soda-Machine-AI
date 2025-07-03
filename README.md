@@ -14,22 +14,31 @@ Through the power of **LLMs** (Language Models), the system interprets these mes
 
 ---
 
-## 🧠 AI Agent Orchestration
+🧠 AI Flow Orchestrator (Inspired by CrewAI)
+This backend features a lightweight AI agent orchestrator, which I call flow, inspired by CrewAI and fully developed by me.
 
-This backend features a lightweight **AI agent orchestrator** which i called flow, inspired by crewai, developed by me with:
+It is responsible for managing how the AI interprets and validates natural language inputs in a reliable and structured way.
 
-- 🔁 Recursive validation logic to ensure coherent agent responses  
-- ✅ JSON schema validation via [Instructor](https://github.com/jxnl/instructor)  
-Manages how the AI interprets and validates natural language inputs.
+🔧 Key Features
+🔁 Recursive Validation Logic
+Automatically retries up to 5 times when the LLM produces structurally or semantically invalid responses.
 
-✅ Flow Highlights
-LLM Client: Powered by instructor + OpenAI, configured to run locally via ollama.
+✅ Structured JSON Schema Validation
+Uses Instructor to enforce that LLM outputs follow precise Pydantic models like UserIntent, FreeChat, etc.
 
-Structured Output: Uses Pydantic response models to constrain and validate AI responses (e.g., UserIntent, FreeChat).
+⚙️ LLM Client Integration
+Powered by Instructor + OpenAI, running locally via Ollama with the llama3 model.
 
-Recursive Retry Logic: If the LLM returns an incoherent structure (e.g., action=buy but orders=[]), the orchestrator retries up to 5 times with feedback.
+🧪 Quality Agent Layer
+A second AI agent is used to semantically validate whether the parsed intent actually makes sense:
 
-Quality Agent Layer: For semantic validation of the structured intent before continuing to the business logic.
+buy must contain a non-empty list of orders
+
+chat must contain a message string
+
+info must return a meaningful payload
+
+
 
 
 ---

@@ -13,6 +13,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
     
 app = FastAPI(title="Soda AI API", version="1.0.0")
+
 agent = AIAgent()
 
 app.add_middleware(

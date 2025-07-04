@@ -17,7 +17,6 @@ ENV/
 
 # Environment files
 .env
-.env.*
 
 # === REACT / FRONT-END ===
 node_modules/

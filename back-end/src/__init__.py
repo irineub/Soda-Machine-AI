@@ -30,7 +30,42 @@ def get_session():
 
 @app.on_event("startup")
 async def startup_event():
+    """
+    Event handler that runs when the application starts up.
+    It creates database tables and initializes some default product data.
+    """
     create_db_and_tables()
+    
+    # Initialize default products if they don't exist
+    initial_products = [
+        {"name": "coke", "stock": 200, "price": 5},
+        {"name": "fanta", "stock": 100, "price": 5},
+        {"name": "pepsi", "stock": 60, "price": 5},
+    ]
+
+    with Session(engine) as session:
+        for product_data in initial_products:
+            product_name_lower = product_data["name"].lower()
+            existing_product = session.exec(select(Product).where(Product.name == product_name_lower)).first()
+
+            if existing_product:
+                # If product exists, update its stock and price
+                existing_product.stock = product_data["stock"]
+                existing_product.price = product_data["price"]
+                session.add(existing_product)
+                print(f"Updated existing product: {existing_product.name} with stock {existing_product.stock}")
+            else:
+                # If product does not exist, create a new one
+                new_product = Product(
+                    name=product_name_lower,
+                    stock=product_data["stock"],
+                    price=product_data["price"]
+                )
+                session.add(new_product)
+                print(f"Added new product: {new_product.name} with stock {new_product.stock}")
+        session.commit()
+        print("Initial product data loaded successfully.")
+
 
 
 @app.post("/ask")

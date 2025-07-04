@@ -40,7 +40,10 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ messages, onSendMessage, isLoad
             <div className="empty-state-content">
               <div className="empty-state-icon">💬</div>
               <p className="empty-state-title">Start a new conversation</p>
-              <p className="empty-state-subtitle">Ask me anything about the soda machine!</p>
+              <p className="empty-state-subtitle">I'm an AI soda machine!</p>
+              <p className="empty-state-subtitle">You can ask me anything or order, for example:</p><br></br>
+              <p className="empty-state-subtitle">What do you have in stock?</p> <br></br>
+              <p className="empty-state-subtitle">I want to buy a coke</p>
             </div>
           </div>
         ) : (

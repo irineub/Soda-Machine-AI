@@ -9,11 +9,28 @@ from .models import (
     MessageInput,
 )
 from .agent.ai_agent import AIAgent
+from fastapi.middleware.cors import CORSMiddleware
 
 
     
 app = FastAPI(title="Soda AI API", version="1.0.0")
+origins = [
+    "http://localhost:5173",  
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins, 
+    allow_credentials=True,  
+    allow_methods=["*"], 
+    allow_headers=["*"],  
+)
+
+
 agent = AIAgent()
+
+
+
 
 def get_session():
     with Session(engine) as session:

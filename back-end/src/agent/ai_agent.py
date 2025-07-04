@@ -152,7 +152,7 @@ class AIAgent:
             )
             response = self.llm.send(FreeChat, message=stock, context=info_context)
 
-            return response
+            return response.message
         
         elif command.action == "most_sold":
             try:
@@ -183,6 +183,6 @@ class AIAgent:
                 logger.success(
                     "Flow Completed", {"input": message, "response": response.message}
                 )
-            return response
+            return response.message
 
         return "Sorry, I couldn't understand your request."

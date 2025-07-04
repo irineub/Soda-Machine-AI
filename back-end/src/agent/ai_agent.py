@@ -16,10 +16,13 @@ load_dotenv()
 
 class LLM:
     def __init__(self):
+        # llm_base_url = os.environ.get("LLM_BASE_URL", None)
+        llm_api_key = os.environ.get("OPENAI_API_KEY")
+        self.llm_model = os.environ.get("LLM_MODEL")
         self.client = instructor.from_openai(
             OpenAI(
-                base_url="http://localhost:11434/v1",
-                api_key="ollama",
+                # base_url=llm_base_url,
+                api_key=f"{llm_api_key}",
             ),
             mode=instructor.Mode.JSON,
         )
@@ -28,7 +31,7 @@ class LLM:
 
         try:
             command = self.client.chat.completions.create(
-                model="llama3",
+                model=f"{self.llm_model}",
                 messages=[{"role": "user", "content": message}],
                 response_model=response_model,
                 max_retries=5,
@@ -114,6 +117,7 @@ class AIAgent:
         return response.valid
 
     def flow_continue(self, command: UserIntent, message: str):
+        backend_base_url = os.environ.get("BACKEND_BASE_URL", "http://localhost:8000")
         if command.action == "buy":
             sales_results = []
             for order in command.orders:
@@ -122,7 +126,7 @@ class AIAgent:
                     "quantity": order.quantity
                 }
                 try:
-                    response = httpx.post("http://localhost:8000/sales/", json=payload)
+                    response = httpx.post(f"{backend_base_url}/sales/", json=payload)
                     if response.status_code == 200:
                         sales = response.json()
                         sales_results.append(f"Ordered {order.quantity}x {order.soda_name}: Success")
@@ -138,7 +142,7 @@ class AIAgent:
         elif command.action == "info":
             info_context = "You are a working with Drink Sales Return the Stock Information Bellow in a user Friendly way"
             try:
-                resp = httpx.get("http://localhost:8000/products/?skip=0&limit=100")
+                resp = httpx.get(f"{backend_base_url}/products/?skip=0&limit=100")
                 resp.raise_for_status()
                 products = resp.json()
             except Exception as e:
@@ -152,11 +156,11 @@ class AIAgent:
             )
             response = self.llm.send(FreeChat, message=stock, context=info_context)
 
-            return response
+            return response.message
         
         elif command.action == "most_sold":
             try:
-                resp = httpx.get("http://localhost:8000/sales/most_sold/")
+                resp = httpx.get(f"{backend_base_url}/sales/most_sold/")
                 resp.raise_for_status()
                 most_sold = resp.json()
             except Exception as e:
@@ -165,7 +169,6 @@ class AIAgent:
 
             if not most_sold:
                 return "No sales data available."
-            # Format the response as needed; assuming most_sold is a list of dicts
             result = "Most Sold Products:\n" + "\n".join(
                 f"{item['product_name'].title()}: {item['total_sold']} sold in total" for item in most_sold
             )
@@ -183,6 +186,6 @@ class AIAgent:
                 logger.success(
                     "Flow Completed", {"input": message, "response": response.message}
                 )
-            return response
+            return response.message
 
         return "Sorry, I couldn't understand your request."

@@ -14,8 +14,8 @@ Through the power of **LLMs** (Language Models), the system interprets these mes
 
 ---
 
-## 🧠 AI Flow Orchestrator (Inspired by CrewAI)
-This backend features a lightweight AI agent orchestrator, which I call flow, inspired by CrewAI and fully developed by me.
+## 🧠 AI Flow Orchestrator (Inspired by CrewAI) Developed by ME
+This backend features a lightweight AI agent orchestrator, which I call flow, inspired by CrewAI and **fully developed by me**.
 
 It is responsible for managing how the AI interprets and validates natural language inputs in a reliable and structured way.
 
@@ -61,6 +61,33 @@ info must return a meaningful payload
 
 ---
 
+## 📸 Visuals
+
+Here are some screenshots and logs demonstrating the application's functionality and the AI orchestration in action:
+
+* **Initial Chat Screen:**
+    ![Initial Chat Screen](https://github.com/irineub/Soda-Machine-AI/blob/main/assets/Initial_chat.png)
+
+* **Full Conversation Example:**
+    ![Full Conversation Example](https://github.com/irineub/Soda-Machine-AI/blob/main/assets/chat_example.png)
+
+* **AI Orchestrator Flow Execution Logs:**
+    ![AI Orchestrator Flow Execution Logs](https://github.com/irineub/Soda-Machine-AI/blob/main/assets/Flow_execution.png)
+
+* **Orchestrator Logs (General Question/Chat Intent):**
+    ![Orchestrator Logs (General Question/Chat Intent)](https://github.com/irineub/Soda-Machine-AI/blob/main/assets/agentic_logs1.png)
+
+* **Orchestrator Logs (Buy Intent Validation):**
+    ![Orchestrator Logs (Buy Intent Validation)](https://github.com/irineub/Soda-Machine-AI/blob/main/assets/buy_logs.png)
+
+* **Orchestrator Logs (Stock Information Intent Validation):**
+    ![Orchestrator Logs (Stock Information Intent Validation)](https://github.com/irineub/Soda-Machine-AI/blob/main/assets/stock.jpg)
+
+* **Swagger API Documentation:**
+    ![Swagger API Documentation](https://github.com/irineub/Soda-Machine-AI/blob/main/assets/swagger_docs.png)
+
+---
+
 ## 🚀 Getting Started
 
 To get the Soda Machine API up and running, follow these steps:
@@ -73,7 +100,7 @@ To get the Soda Machine API up and running, follow these steps:
     ```
 
 2.  **Ensure `docker-compose.yaml` is configured:**
-    The `docker-compose.yaml` file should already contain the `LLM_MODEL` and `OPENAI_API_KEY` environment variables for the backend service. An example snippet for the backend service within your `docker-compose.yaml` would look like this:
+    The `docker-compose.yaml` file should already contain the `LLM_MODEL` and `OPENAI_API_KEY` environment variables for the backend service. An example snippet for the backend service within your `docker-compose.yaml` would look like this, edit and add your own api key and prefered llm model:
 
     ```yaml
     services:
@@ -82,11 +109,10 @@ To get the Soda Machine API up and running, follow these steps:
         ports:
           - "8000:8000"
         environment:
-          - LLM_MODEL=llama3 # Or your preferred LLM model name, e.g., gpt-4o
+          - LLM_MODEL=gpt-4o-mini # Or your preferred LLM model name, e.g., gpt-4o
           - OPENAI_API_KEY=your_openai_api_key_here # Replace with your actual OpenAI API key or a placeholder if using a local model
         # ... other backend configurations
     ```
-    **Note:** If you are using a local LLM model via Ollama, `OPENAI_API_KEY` might not be strictly necessary for the API calls themselves, but `Instructor` often expects it, so a placeholder value can be used if you're not connecting to OpenAI directly.
 
 3.  **Build and Run with Docker Compose:**
     Once your `docker-compose.yaml` is correctly configured, you can build and start the services using Docker Compose:
@@ -100,8 +126,7 @@ To get the Soda Machine API up and running, follow these steps:
     * Start the containers, making the Soda Machine API available.
 
 4.  **Access the API and Frontend:**
-    * The **frontend** will be available at `http://localhost:5173`.
     * The **FastAPI backend** will be accessible at `http://localhost:8000`.
-    * The **FastAPI backend docs** will be accessible at `http://localhost:8000/docs`.
+    * The **frontend** will be available at `http://localhost:5173`.
 
 You can now interact with your AI-powered soda machine!
